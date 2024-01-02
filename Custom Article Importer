@@ -1,0 +1,64 @@
+<?php
+/*
+Plugin Name: Custom Article Importer
+Description: Import articles from external sources.
+Version: 1.0
+Author: Anvixa
+*/
+
+// Hook for adding admin menus
+add_action('admin_menu', 'custom_article_importer_menu');
+
+function custom_article_importer_menu() {
+    add_menu_page(
+        'Article Importer',
+        'Article Importer',
+        'manage_options',
+        'custom_article_importer',
+        'custom_article_importer_page'
+    );
+}
+
+function custom_article_importer_page() {
+    ?>
+    <div class="wrap">
+        <h2>Article Importer</h2>
+        <form method="post" action="">
+            <label for="article_url">Article URL:</label>
+            <input type="text" name="article_url" id="article_url" />
+            <input type="submit" name="import_article" class="button button-primary" value="Import Article" />
+        </form>
+
+        <?php
+        if (isset($_POST['import_article'])) {
+            $article_url = esc_url($_POST['article_url']);
+
+            // Fetch content from the external source
+            $response = wp_remote_get($article_url);
+
+            if (is_array($response) && !is_wp_error($response)) {
+                $content = wp_remote_retrieve_body($response);
+
+                // Create a new post
+                $post_id = wp_insert_post(array(
+                    'post_title'   => 'Imported Article', // You may want to extract the title from the fetched content
+                    'post_content' => $content,
+                    'post_status'  => 'publish',
+                    'post_author'  => get_current_user_id(),
+                    'post_category' => array(1), // Category ID - customize as needed
+                ));
+
+                if (!is_wp_error($post_id)) {
+                    echo '<p class="updated">Article imported successfully!</p>';
+                } else {
+                    echo '<p class="error">Error importing article.</p>';
+                }
+            } else {
+                echo '<p class="error">Error fetching content from the provided URL.</p>';
+            }
+        }
+        ?>
+    </div>
+    <?php
+}
+?>
